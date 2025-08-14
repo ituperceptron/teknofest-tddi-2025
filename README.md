@@ -2,23 +2,23 @@
 
 GovAI, **Teknofest yarışması** için geliştirilmiş kapsamlı bir **offline AI metin işleme platformu**dur. Flask tabanlı bu web uygulaması, gelişmiş AI modellerini kullanarak Türkçe metinler üzerinde çeşitli işlemler yapabilmektedir.
 
-## ✨ Ana Özellikler
+##  Ana Özellikler
 
-### 🤖 AI Destekli İşlemler
-- 📝 **Metin Özetleme**: LLaMA 3.1 8B modeliyle gelişmiş Türkçe özetleme
-- 🏷️ **Metin Sınıflandırma**: XLM-RoBERTa ile resmi evrak türlerini tanıma
-- 👁️ **OCR (Optik Karakter Tanıma)**: Qwen2.5-VL ile PDF ve resimlerden metin çıkarma
-- 🎯 **NER (Varlık Tanıma)**: Turkish BERT ile kişi, yer, kurum tanıma
+###  AI Destekli İşlemler
+-  **Metin Özetleme**: LLaMA 3.1 8B modeliyle gelişmiş Türkçe özetleme
+-  **Metin Sınıflandırma**: XLM-RoBERTa ile resmi evrak türlerini tanıma
+-  **OCR (Optik Karakter Tanıma)**: Qwen2.5-VL ile PDF ve resimlerden metin çıkarma
+-  **NER (Varlık Tanıma)**: Turkish BERT ile kişi, yer, kurum tanıma
 
-### 📋 Platform Özellikleri
-- 🔐 **Kullanıcı Kimlik Doğrulama**: Güvenli kayıt ve giriş sistemi
-- 📁 **Dosya Yönetimi**: PDF ve resim dosyası yükleme/işleme
-- 📊 **İşlem Geçmişi**: Tüm AI işlemlerinin detaylı takibi
-- 📱 **Responsive Tasarım**: Mobil ve masaüstü uyumlu modern arayüz
-- 💾 **Offline Çalışma**: İnternet bağlantısı gerektirmez
-- 🔄 **Çoklu Dosya İşleme**: Toplu PDF işleme desteği
+###  Platform Özellikleri
+-  **Kullanıcı Kimlik Doğrulama**: Güvenli kayıt ve giriş sistemi
+-  **Dosya Yönetimi**: PDF ve resim dosyası yükleme/işleme
+-  **İşlem Geçmişi**: Tüm AI işlemlerinin detaylı takibi
+-  **Responsive Tasarım**: Mobil ve masaüstü uyumlu modern arayüz
+-  **Offline Çalışma**: İnternet bağlantısı gerektirmez
+-  **Çoklu Dosya İşleme**: Toplu PDF işleme desteği
 
-## 🏗️ Teknoloji Stack
+##  Teknoloji Stack
 
 ### Backend
 - **Framework**: Flask (Python)
@@ -39,12 +39,12 @@ GovAI, **Teknofest yarışması** için geliştirilmiş kapsamlı bir **offline 
 - **İkonlar**: Font Awesome 6
 - **Tasarım**: Mobile-first responsive design
 
-## 🚀 Kurulum
+##  Kurulum
 
 ### Sistem Gereksinimleri
 
 - **Python**: 3.8 veya üzeri
-- **RAM**: Minimum 8GB (16GB önerilen)
+- **RAM**: Minimum 8GB (16GB+ önerilen)
 - **Depolama**: ~15GB (AI modelleri için)
 - **GPU**: CUDA destekli GPU (opsiyonel, performans için). Apple Silicon (M1/M2/M3) üzerinde Metal/MPS hızlandırma desteklenir.
 
@@ -111,46 +111,47 @@ mkdir -p models/qwen_vlm
 python app.py
 ```
 
-🌐 **Tarayıcınızda açın:** http://localhost:5001
+ **Tarayıcınızda açın:** http://localhost:5001
 
-### ⚡ Hızlı Başlangıç
+###  Hızlı Başlangıç
 
 1. **Kayıt Olun**: İlk kez kullanıyorsanız "Kayıt Ol" ile hesap oluşturun
 2. **Giriş Yapın**: Kullanıcı adı ve şifrenizle giriş yapın
 3. **Model Yükleme**: İlk başlatmada AI modelleri yüklenecek (~2-5 dakika)
 4. **Kullanmaya Başlayın**: Dashboard'dan istediğiniz AI özelliğini seçin
 
-## 📚 Kullanım Kılavuzu
+##  Kullanım Kılavuzu
 
-### 🤖 AI Özellikleri
+###  AI Özellikleri
 
-#### 📝 Metin Özetleme
+#### � Metin Özetleme
 - **Metin Girişi**: Doğrudan metin yazın veya PDF yükleyin
 - **Çoklu PDF**: Birden fazla PDF'i aynı anda özetleyin
 - **LLaMA 3.1**: Gelişmiş Türkçe özetleme için optimize edilmiş
 - **Sonuç**: Özet metnini kopyalayın, kaydedin veya indirin
 
-#### 🏷️ Metin Sınıflandırma
+####  Metin Sınıflandırma
 - **Evrak Türleri**: Şikayet dilekçesi, bilgi edinme başvurusu, sosyal yardım talebi vb.
 - **PDF Desteği**: PDF dosyalarını otomatik sınıflandırma
 - **Güven Skoru**: Her kategori için güvenilirlik oranı
 - **Toplu İşlem**: Çoklu dosya sınıflandırması
 
-#### 👁️ OCR (Optik Karakter Tanıma)
+####  OCR (Optik Karakter Tanıma)
 - **PDF OCR**: Taranmış PDF'lerden metin çıkarma
 - **Resim OCR**: JPG, PNG, BMP, TIFF formatlarını destekler
 - **Qwen2.5-VL**: Gelişmiş vision model kullanımı
 - **Türkçe Optimizasyon**: Türkçe karakterler için optimize edilmiş
 
-#### 🎯 NER (Varlık Tanıma)
+####  NER (Varlık Tanıma)
 - **Kişi Adları**: Metin içindeki kişi isimlerini tespit
 - **Organizasyonlar**: Şirket, kurum, dernek adları
 - **Lokasyonlar**: Şehir, ülke, adres bilgileri
 - **Tarihler**: Çeşitli tarih formatlarını tanıma
 - **Para Birimleri**: TL, USD, EUR vb. para ifadeleri
-- **Sayılar**: Önemli sayısal değerler
+- **Hukuki Terimler**: Hukuki referanslar
+- **İletişim bilgileri** Mail, telefon gibi iletişim bilgileri
 
-### 🎛️ Platform Kullanımı
+###  Platform Kullanımı
 
 #### Dashboard
 - **Hızlı Erişim**: Tüm AI özelliklerine tek tıkla ulaşım
@@ -168,7 +169,7 @@ python app.py
 - **İşlem Sayıları**: Her AI özelliği için kullanım istatistikleri
 - **Güvenlik**: Şifre değiştirme (gelecek sürüm)
 
-## 🗄️ Veritabanı Yapısı
+##  Veritabanı Yapısı
 
 ### Ana Tablolar
 
@@ -208,27 +209,27 @@ python app.py
 
 ```
 tkfest_y-2/
-├── app.py                    # 🔗 Ana Flask uygulaması
-├── database.db              # 🗄️ SQLite veritabanı (otomatik oluşturulur)
-├── requirements.txt         # 📦 Python bağımlılıkları
-├── README.md               # 📖 Bu dosya
-├── models/                 # 🤖 AI Model dosyaları
+├── app.py                    #  Ana Flask uygulaması
+├── database.db              #  SQLite veritabanı (otomatik oluşturulur)
+├── requirements.txt         #  Python bağımlılıkları
+├── README.md               #  Bu dosya
+├── models/                 #  AI Model dosyaları
 │   ├── __init__.py
-│   ├── model_manager.py    # 🎮 Model yönetim sistemi
-│   ├── classifier.py       # 🏷️ Sınıflandırma modülü
-│   ├── summarizer.py       # 📝 Özetleme modülü
-│   ├── ocr_processor.py    # 👁️ OCR modülü
-│   ├── ner_processor.py    # 🎯 NER modülü
+│   ├── model_manager.py    #  Model yönetim sistemi
+│   ├── classifier.py       #  Sınıflandırma modülü
+│   ├── summarizer.py       #  Özetleme modülü
+│   ├── ocr_processor.py    #  OCR modülü
+│   ├── ner_processor.py    #  NER modülü
 │   ├── Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf  # LLaMA model dosyası
 │   └── qwen_vlm/           # Qwen2.5-VL model dosyaları
-├── static/                 # 🎨 Statik dosyalar
+├── static/                 #  Statik dosyalar
 │   ├── css/
 │   │   └── style.css       # Ana CSS dosyası
 │   ├── js/
 │   │   └── script.js       # JavaScript işlevleri
 │   └── images/
 │       └── Teknofest_logo_pfp.png
-├── templates/              # 🖼️ HTML şablonları
+├── templates/              #  HTML şablonları
 │   ├── base.html           # Temel şablon
 │   ├── index.html          # Ana sayfa
 │   ├── login.html          # Giriş sayfası
@@ -327,4 +328,5 @@ Proje hakkında sorularınız için:
 - Metin özetleme ve sınıflandırma
 - Belge yönetimi
 - Responsive tasarım
+
 - SQLite veritabanı desteği 
