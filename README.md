@@ -32,8 +32,8 @@ GovAI, **Teknofest yarışması** için geliştirilmiş kapsamlı bir **offline 
 - **Özetleme**: Meta LLaMA 3.1 8B Instruct (GGUF)
 - **Sınıflandırma**: joeddav/xlm-roberta-large-xnli
 - **OCR**: Qwen2.5-VL-3B-Instruct (yerel model)
-- **NER**: akdeniz27/xlm-roberta-base-turkish-ner
-
+- **NER**: [ituperceptron/turkish-ner-itu-perceptron](https://huggingface.co/ituperceptron/turkish-ner-itu-perceptron)
+- **NER Dataset**: [ituperceptron/turkish-ner-dataset](https://huggingface.co/ituperceptron/turkish-ner-itu-perceptron)
 ### Frontend
 - **UI**: HTML5, CSS3, JavaScript (ES6+)
 - **İkonlar**: Font Awesome 6
@@ -124,7 +124,7 @@ python app.py
 
 ###  AI Özellikleri
 
-#### � Metin Özetleme
+####  Metin Özetleme
 - **Metin Girişi**: Doğrudan metin yazın veya PDF yükleyin
 - **Çoklu PDF**: Birden fazla PDF'i aynı anda özetleyin
 - **LLaMA 3.1**: Gelişmiş Türkçe özetleme için optimize edilmiş
@@ -317,7 +317,6 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## İletişim
 
 Proje hakkında sorularınız için:
-- Email: your-email@example.com
 - GitHub Issues: [Proje Issues Sayfası](https://github.com/username/tkfest/issues)
 
 ## Changelog
@@ -330,3 +329,4 @@ Proje hakkında sorularınız için:
 - Responsive tasarım
 
 - SQLite veritabanı desteği 
+
