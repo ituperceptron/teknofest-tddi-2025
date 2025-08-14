@@ -1,0 +1,1197 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Belgelerim{% endblock %}
+{% block page_title %}Belgelerim{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-nav">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Kontrol Paneli</span>
+        </a>
+    </div>
+    <div class="page-title">
+        <h1><i class="fas fa-file-alt"></i> Belgelerim</h1>
+        <p>Tüm belgelerinizi kategorilere göre organize edin ve kolayca arayın.</p>
+    </div>
+</div>
+
+<div class="documents-container">
+    <div class="documents-header">
+        <div class="documents-search">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search-documents" placeholder="Belgelerinizde ara..." oninput="searchDocuments()">
+                <button class="clear-search" onclick="clearSearch()" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="documents-bulk-actions">
+            <button id="bulk-download" class="btn btn-secondary" disabled onclick="bulkDownloadSelected()">
+                <i class="fas fa-download"></i>
+                Seçilenleri İndir
+            </button>
+            <button id="bulk-delete" class="btn btn-danger" disabled onclick="confirmBulkDelete()">
+                <i class="fas fa-trash"></i>
+                Seçilenleri Sil
+            </button>
+        </div>
+    </div>
+    
+    <!-- Belgeler Bölümü -->
+    
+    <div class="documents-grid">
+        {% if documents %}
+            {% for doc in documents %}
+                {% if doc[4] not in ['text_summary', 'pdf_summary'] %}
+                <div class="card document-item">
+                    <div class="document-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    
+                    <div class="document-content">
+                        <h3>{{ doc[2] }}</h3>
+                        <p class="document-preview">{{ doc[3][:100] if doc[3] else 'İçerik yok' }}...</p>
+                        
+                        <div class="document-meta">
+                            <span class="document-category">{{ doc[4] if doc[4] else 'Genel' }}</span>
+                            <span class="document-date">{{ doc[5] }}</span>
+                        </div>
+                        
+                        <div class="document-actions">
+                            <button class="btn btn-sm btn-primary" onclick="viewDocument({{ doc[0] }})">
+                                <i class="fas fa-eye"></i>
+                                Görüntüle
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="editDocument({{ doc[0] }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="downloadDocument({{ doc[0] }})">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="deleteDocument({{ doc[0] }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <!--<div class="card empty-state">
+                <div class="empty-content">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>Henüz belge bulunmuyor</h3>
+                    <p>İlk belgenizi oluşturmak için "Yeni Belge" butonuna tıklayın.</p>
+                    <button class="btn btn-primary" onclick="showNewDocumentForm()">
+                        <i class="fas fa-plus"></i>
+                        İlk Belgeyi Oluştur
+                    </button>
+                </div>
+            </div>-->
+        {% endif %}
+    </div>
+
+    <!-- Özetleme Metinleri Bölümü (Yeni) -->
+    <div class="document-section">
+        <div class="section-header collapsible collapsed" onclick="toggleSection('summary-section')">
+            <h3><i class="fas fa-file-alt"></i> Özetleme ({{ (summary_texts|length if summary_texts else 0) + (summary_pdfs|length if summary_pdfs else 0) }})</h3>
+            <i class="fas fa-chevron-right toggle-icon" id="summary-toggle"></i>
+        </div>
+        <div class="section-content collapsed" id="summary-section">
+            <div class="documents-grid">
+        {% if summary_texts %}
+            {% for txt in summary_texts %}
+            <div class="card document-item" data-id="{{ txt[0] }}" data-type="summary_text" data-file="{{ txt[3] }}" data-name="{{ txt[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="document-content">
+                    <h3>{{ txt[2] }}</h3>
+                    <p class="document-preview">Metin dosyası - {{ (txt[4] / 1024) | round(1) }} KB</p>
+                    <div class="document-meta">
+                        <span class="document-category summary-category">Özetleme</span>
+                        <span class="document-date">{{ txt[5] }}</span>
+                    </div>
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=txt[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ txt[3] }}', '{{ txt[2] }}', 'summary')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if summary_pdfs %}
+            {% for pdf in summary_pdfs %}
+            <div class="card document-item pdf-item" data-id="{{ pdf[0] }}" data-type="summary" data-file="{{ pdf[3] }}" data-name="{{ pdf[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <div class="document-content">
+                    <h3>{{ pdf[2] }}</h3>
+                    <p class="document-preview">PDF dosyası - {{ (pdf[4] / 1024) | round(1) }} KB</p>
+                    <div class="document-meta">
+                        <span class="document-category summary-category">Özetleme</span>
+                        <span class="document-date">{{ pdf[5] }}</span>
+                    </div>
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=pdf[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ pdf[3] }}', '{{ pdf[2] }}', 'summary')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeletePdf({{ pdf[0] }}, 'summary')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if not summary_texts and not summary_pdfs %}
+            <div class="empty-content">
+                <i class="fas fa-file-alt" style="font-size: 3rem; color: #cbd5e0; margin-bottom: 15px;"></i>
+                <h4 style="color: #718096; margin-bottom: 8px;">İçerik bulunmuyor</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem; margin: 0;">Bu bölümde henüz içerik yüklenmemiş.</p>
+            </div>
+        {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sınıflandırma (Metin + PDF) -->
+    <div class="document-section">
+        <div class="section-header collapsible collapsed" onclick="toggleSection('classification-section')">
+            <h3><i class="fas fa-tags"></i> Sınıflandırma ({{ (classification_texts|length if classification_texts else 0) + (classification_pdfs|length if classification_pdfs else 0) }})</h3>
+            <i class="fas fa-chevron-right toggle-icon" id="classification-toggle"></i>
+        </div>
+        <div class="section-content collapsed" id="classification-section">
+            <div class="documents-grid">
+        {% if classification_texts %}
+            {% for txt in classification_texts %}
+            <div class="card document-item" data-id="{{ txt[0] }}" data-type="classification_text" data-file="{{ txt[3] }}" data-name="{{ txt[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="document-content">
+                    <h3>{{ txt[2] }}</h3>
+                    <p class="document-preview">Metin dosyası - {{ (txt[4] / 1024) | round(1) }} KB</p>
+                    <div class="document-meta">
+                        <span class="document-category classification-category">Sınıflandırma</span>
+                        <span class="document-date">{{ txt[5] }}</span>
+                    </div>
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=txt[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ txt[3] }}', '{{ txt[2] }}', 'classification')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if classification_pdfs %}
+            {% for pdf in classification_pdfs %}
+            <div class="card document-item pdf-item" data-id="{{ pdf[0] }}" data-type="classification" data-file="{{ pdf[3] }}" data-name="{{ pdf[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                
+                <div class="document-content">
+                    <h3>{{ pdf[2] }}</h3>
+                    <p class="document-preview">PDF dosyası - {{ (pdf[4] / 1024) | round(1) }} KB</p>
+                    
+                    <div class="document-meta">
+                        <span class="document-category classification-category">Sınıflandırma</span>
+                        <span class="document-date">{{ pdf[5] }}</span>
+                    </div>
+                    
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=pdf[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ pdf[3] }}', '{{ pdf[2] }}', 'classification')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeletePdf({{ pdf[0] }}, 'classification')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if not classification_texts and not classification_pdfs %}
+            <div class="empty-content">
+                <i class="fas fa-tags" style="font-size: 3rem; color: #cbd5e0; margin-bottom: 15px;"></i>
+                <h4 style="color: #718096; margin-bottom: 8px;">İçerik bulunmuyor</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem; margin: 0;">Bu bölümde henüz içerik yüklenmemiş.</p>
+            </div>
+        {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Karakter Tanıma (PDF + Görseller) -->
+    <div class="document-section">
+        <div class="section-header collapsible collapsed" onclick="toggleSection('ocr-section')">
+            <h3>Karakter ve Obje Tanıma ({{ (ocr_pdfs|length if ocr_pdfs else 0) + (ocr_images|length if ocr_images else 0) }})</h3>
+            <i class="fas fa-chevron-right toggle-icon" id="ocr-toggle"></i>
+        </div>
+        <div class="section-content collapsed" id="ocr-section">
+            <div class="documents-grid">
+        {% if ocr_pdfs %}
+            {% for pdf in ocr_pdfs %}
+            <div class="card document-item pdf-item" data-id="{{ pdf[0] }}" data-type="ocr" data-file="{{ pdf[3] }}" data-name="{{ pdf[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                
+                <div class="document-content">
+                    <h3>{{ pdf[2] }}</h3>
+                    <p class="document-preview">PDF dosyası - {{ (pdf[4] / 1024) | round(1) }} KB</p>
+                    
+                    <div class="document-meta">
+                        <span class="document-category ocr-category">Karakter ve Obje Tanıma</span>
+                        <span class="document-date">{{ pdf[5] }}</span>
+                    </div>
+                    
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=pdf[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ pdf[3] }}', '{{ pdf[2] }}', 'ocr')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeletePdf({{ pdf[0] }}, 'ocr')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if ocr_images %}
+            {% for image in ocr_images %}
+            <div class="card document-item image-item" data-id="{{ image[0] }}" data-type="ocr_image" data-file="{{ image[3] }}" data-name="{{ image[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-image"></i>
+                </div>
+                
+                <div class="document-content">
+                    <h3>{{ image[2] }}</h3>
+                    <p class="document-preview">Resim dosyası - {{ (image[4] / 1024) | round(1) }} KB</p>
+                    
+                    <div class="document-meta">
+                        <span class="document-category ocr-category">Karakter ve Obje Tanıma</span>
+                        <span class="document-date">{{ image[5] }}</span>
+                    </div>
+                    
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=image[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadImage('{{ image[3] }}', '{{ image[2] }}', 'ocr')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeleteImage({{ image[0] }}, 'ocr')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% if not ocr_pdfs and not ocr_images %}
+            <div class="empty-content">
+                <i class="fas fa-camera" style="font-size: 3rem; color: #cbd5e0; margin-bottom: 15px;"></i>
+                <h4 style="color: #718096; margin-bottom: 8px;">İçerik bulunmuyor</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem; margin: 0;">Bu bölümde henüz içerik yüklenmemiş.</p>
+            </div>
+        {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- NER (Metin + PDF) -->
+    <div class="document-section">
+        <div class="section-header collapsible collapsed" onclick="toggleSection('ner-section')">
+            <h3>Varlık Tanıma ({{ (ner_texts|length if ner_texts else 0) + (ner_pdfs|length if ner_pdfs else 0) }})</h3>
+            <i class="fas fa-chevron-right toggle-icon" id="ner-toggle"></i>
+        </div>
+        <div class="section-content collapsed" id="ner-section">
+            <div class="documents-grid">
+        {% if ner_texts %}
+            {% for txt in ner_texts %}
+            <div class="card document-item" data-id="{{ txt[0] }}" data-type="ner_text" data-file="{{ txt[3] }}" data-name="{{ txt[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="document-content">
+                    <h3>{{ txt[2] }}</h3>
+                    <p class="document-preview">Metin dosyası - {{ (txt[4] / 1024) | round(1) }} KB</p>
+                    <div class="document-meta">
+                        <span class="document-category ner-category">Varlık Tanıma</span>
+                        <span class="document-date">{{ txt[5] }}</span>
+                    </div>
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=txt[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ txt[3] }}', '{{ txt[2] }}', 'ner')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% if ner_pdfs %}
+            {% for pdf in ner_pdfs %}
+            <div class="card document-item pdf-item" data-id="{{ pdf[0] }}" data-type="ner" data-file="{{ pdf[3] }}" data-name="{{ pdf[2] }}">
+                <input type="checkbox" class="doc-select" onclick="onSelectChange(event)">
+                <div class="document-icon">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                
+                <div class="document-content">
+                    <h3>{{ pdf[2] }}</h3>
+                    <p class="document-preview">PDF dosyası - {{ (pdf[4] / 1024) | round(1) }} KB</p>
+                    
+                    <div class="document-meta">
+                        <span class="document-category ner-category">Varlık Tanıma</span>
+                        <span class="document-date">{{ pdf[5] }}</span>
+                    </div>
+                    
+                    <div class="document-actions">
+                        <a href="{{ url_for('serve_upload', filename=pdf[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ pdf[3] }}', '{{ pdf[2] }}', 'ner')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeletePdf({{ pdf[0] }}, 'ner')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% if not ner_texts and not ner_pdfs %}
+            <div class="empty-content">
+                <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e0; margin-bottom: 15px;"></i>
+                <h4 style="color: #718096; margin-bottom: 8px;">İçerik bulunmuyor</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem; margin: 0;">Bu bölümde henüz içerik yüklenmemiş.</p>
+            </div>
+        {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Belge Modal -->
+<div id="newDocumentModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Yeni Belge Oluştur</h3>
+            <button class="modal-close" onclick="closeDocumentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form class="document-form">
+            <div class="form-group">
+                <label for="document-title" class="form-label">Belge Başlığı</label>
+                <input type="text" id="document-title" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="document-content" class="form-label">İçerik</label>
+                <textarea id="document-content" class="form-control" rows="10" placeholder="Belge içeriğini buraya yazın..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="document-category" class="form-label">Kategori</label>
+                <select id="document-category" class="form-control">
+                    <option value="">Kategori Seçin</option>
+                    <option value="personal">Kişisel</option>
+                    <option value="work">İş</option>
+                    <option value="academic">Akademik</option>
+                    <option value="other">Diğer</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeDocumentModal()">İptal</button>
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Belgeler işlevselliği
+function showNewDocumentForm() {
+    document.getElementById('newDocumentModal').style.display = 'flex';
+}
+
+function closeDocumentModal() {
+    document.getElementById('newDocumentModal').style.display = 'none';
+}
+
+function searchDocuments() {
+    const searchTerm = document.getElementById('search-documents').value.toLowerCase().trim();
+    const allDocumentItems = document.querySelectorAll('.document-item');
+    const clearButton = document.querySelector('.clear-search');
+    
+    // Show/hide clear button
+    clearButton.style.display = searchTerm ? 'flex' : 'none';
+    
+    allDocumentItems.forEach(item => {
+        const title = item.querySelector('h3')?.textContent?.toLowerCase() || '';
+        const preview = item.querySelector('.document-preview')?.textContent?.toLowerCase() || '';
+        const category = item.querySelector('.document-category')?.textContent?.toLowerCase() || '';
+        
+        const matchesSearch = title.includes(searchTerm) || 
+                             preview.includes(searchTerm) || 
+                             category.includes(searchTerm);
+        
+        if (searchTerm === '' || matchesSearch) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Update section headers with visible count
+    updateSectionCounts();
+}
+
+function clearSearch() {
+    document.getElementById('search-documents').value = '';
+    document.querySelector('.clear-search').style.display = 'none';
+    searchDocuments();
+}
+
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const header = section.previousElementSibling;
+    const toggleIcon = document.getElementById(sectionId.replace('-section', '-toggle'));
+    
+    if (section.classList.contains('collapsed')) {
+        section.classList.remove('collapsed');
+        header.classList.remove('collapsed');
+        toggleIcon.classList.remove('fa-chevron-right');
+        toggleIcon.classList.add('fa-chevron-down');
+    } else {
+        section.classList.add('collapsed');
+        header.classList.add('collapsed');
+        toggleIcon.classList.remove('fa-chevron-down');
+        toggleIcon.classList.add('fa-chevron-right');
+    }
+}
+
+function updateSectionCounts() {
+    const sections = ['summary', 'classification', 'ocr', 'ner'];
+    
+    sections.forEach(section => {
+        const sectionElement = document.getElementById(`${section}-section`);
+        if (sectionElement) {
+            const visibleItems = sectionElement.querySelectorAll('.document-item:not([style*="none"])');
+            const header = sectionElement.previousElementSibling.querySelector('h3');
+            const originalText = header.textContent.split(' (')[0];
+            header.textContent = `${originalText} (${visibleItems.length})`;
+        }
+    });
+}
+
+// Initialize sections as expanded by default
+document.addEventListener('DOMContentLoaded', function() {
+    // All sections start expanded, no need to do anything
+    updateSectionCounts();
+});
+
+function viewDocument(docId) {
+    alert(`Belge ${docId} görüntüleniyor...`);
+}
+
+function editDocument(docId) {
+    alert(`Belge ${docId} düzenleniyor...`);
+}
+
+function downloadDocument(docId) {
+    alert(`Belge ${docId} indiriliyor...`);
+}
+
+function deleteDocument(docId) {
+    if (confirm('Bu belgeyi silmek istediğinizden emin misiniz?')) {
+        fetch(`/delete_document/${docId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Belge silme hatası: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Belge silme sırasında hata oluştu.');
+        });
+    }
+}
+
+function importDocument() {
+    alert('Belge içe aktarma özelliği yakında eklenecek!');
+}
+
+function exportAllDocuments() {
+    alert('Tüm belgeler dışa aktarılıyor...');
+}
+
+function downloadPdf(filename, originalName, type) {
+    const link = document.createElement('a');
+    link.href = `/uploads/${filename}`;
+    link.download = originalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Bulk selection helpers
+function getSelectedItems(){
+    const selected = Array.from(document.querySelectorAll('.document-item .doc-select:checked'))
+        .map(cb => cb.closest('.document-item'));
+    return selected.map(el => ({
+        id: el.getAttribute('data-id'),
+        type: el.getAttribute('data-type'),
+        file: el.getAttribute('data-file'),
+        name: el.getAttribute('data-name')
+    }));
+}
+
+function onSelectChange(){
+    const hasSelection = document.querySelectorAll('.document-item .doc-select:checked').length > 0;
+    document.getElementById('bulk-download').disabled = !hasSelection;
+    document.getElementById('bulk-delete').disabled = !hasSelection;
+}
+
+function bulkDownloadSelected(){
+    const items = getSelectedItems();
+    items.forEach(item => {
+        // Both OCR PDFs and images are served via /uploads; use filename
+        if (item.type === 'ocr_image') {
+            downloadImage(item.file, item.name, 'ocr');
+        } else {
+            downloadPdf(item.file, item.name, item.type);
+        }
+    });
+}
+
+function confirmBulkDelete(){
+    const items = getSelectedItems();
+    if (!items.length) return;
+    openConfirmModal(`${items.length} öğeyi silmek istediğinizden emin misiniz?`, function(){
+        bulkDelete(items);
+    });
+}
+
+function bulkDelete(items){
+    const requests = items.map(item => {
+        let endpoint = '';
+        if (item.type === 'summary') endpoint = `/delete_pdf/${item.id}`;
+        else if (item.type === 'classification') endpoint = `/delete_classification_pdf/${item.id}`;
+        else if (item.type === 'ocr') endpoint = `/delete_ocr_pdf/${item.id}`;
+        else if (item.type === 'ocr_image') endpoint = `/delete_ocr_image/${item.id}`;
+        else if (item.type === 'ner') endpoint = `/delete_ner_pdf/${item.id}`;
+        return fetch(endpoint, { method: 'DELETE' }).then(r => r.json());
+    });
+    Promise.all(requests).then(() => {
+        // Remove only deleted items without collapsing sections
+        document.querySelectorAll('.document-item .doc-select:checked').forEach(cb => {
+            const card = cb.closest('.document-item');
+            card.remove();
+        });
+        onSelectChange();
+        updateSectionCounts();
+    }).catch(err => {
+        console.error(err);
+        alert('Toplu silme sırasında bir hata oluştu.');
+    });
+}
+
+function confirmDeletePdf(pdfId, type){
+    openConfirmModal('Bu PDF dosyasını silmek istediğinizden emin misiniz?', function(){
+        deletePdf(pdfId, type);
+    });
+}
+
+function deletePdf(pdfId, type) {
+    let endpoint;
+    if (type === 'summary') {
+        endpoint = `/delete_pdf/${pdfId}`;
+    } else if (type === 'classification') {
+        endpoint = `/delete_classification_pdf/${pdfId}`;
+    } else if (type === 'ocr') {
+        endpoint = `/delete_ocr_pdf/${pdfId}`;
+    } else if (type === 'ner') {
+        endpoint = `/delete_ner_pdf/${pdfId}`;
+    }
+    
+    fetch(endpoint, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('PDF silme hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('PDF silme sırasında hata oluştu.');
+    });
+}
+
+function downloadImage(filename, originalName, type) {
+    const link = document.createElement('a');
+    link.href = `/uploads/${filename}`;
+    link.download = originalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function confirmDeleteImage(imageId, type){
+    openConfirmModal('Bu resim dosyasını silmek istediğinizden emin misiniz?', function(){
+        deleteImage(imageId, type);
+    });
+}
+
+function deleteImage(imageId, type) {
+    const endpoint = `/delete_ocr_image/${imageId}`;
+    
+    fetch(endpoint, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Resim silme hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Resim silme sırasında hata oluştu.');
+    });
+}
+
+// Modal dışına tıklandığında kapatma
+window.onclick = function(event) {
+    const modal = document.getElementById('newDocumentModal');
+    if (event.target === modal) {
+        closeDocumentModal();
+    }
+}
+
+// Form gönderimi
+document.querySelector('.document-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const title = document.getElementById('document-title').value;
+    const content = document.getElementById('document-content').value;
+    const category = document.getElementById('document-category').value;
+    
+    if (!title) {
+        alert('Lütfen belge başlığını girin.');
+        return;
+    }
+    
+    // Demo kaydetme işlemi
+    alert('Belge başarıyla kaydedildi!');
+    closeDocumentModal();
+    
+    // Formu temizle
+    this.reset();
+});
+</script>
+
+<style>
+/* Documents Header */
+.documents-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    gap: 30px;
+}
+
+.documents-title h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.documents-title p {
+    color: #666;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.documents-search {
+    flex-shrink: 0;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 2px solid #e1e5e9;
+    border-radius: 25px;
+    padding: 12px 20px;
+    width: 350px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-box:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.2);
+}
+
+.search-box i {
+    color: #666;
+    margin-right: 10px;
+    font-size: 1rem;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 1rem;
+    background: transparent;
+}
+
+.clear-search {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 5px;
+    margin-left: 10px;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clear-search:hover {
+    background: #f0f0f0;
+    color: #666;
+}
+
+/* Document Sections */
+.document-section {
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border: 1px solid #f0f0f0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 25px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.section-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.section-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.section-header.collapsed {
+    border-bottom: none;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-header h3 i {
+    color: #667eea;
+    font-size: 1.1rem;
+    width: 18px;
+    text-align: center;
+}
+
+.toggle-icon {
+    color: #6c757d;
+    font-size: 0.9rem;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.section-content {
+    padding: 25px;
+    max-height: 2000px;
+    overflow: hidden;
+    opacity: 1;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    padding: 0 25px;
+    opacity: 0;
+}
+
+.documents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.document-item {
+    display: flex;
+    gap: 18px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.document-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.document-icon {
+    font-size: 2.2rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.pdf-item .document-icon {
+    background: linear-gradient(135deg, #fff5f5, #fed7d7);
+    color: #dc3545;
+}
+
+.image-item .document-icon {
+    background: linear-gradient(135deg, #f0fff4, #c6f6d5);
+    color: #38a169;
+}
+
+.document-content {
+    flex: 1;
+}
+
+.document-content h3 {
+    margin-bottom: 8px;
+    color: #2d3748;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.document-preview {
+    color: #718096;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.document-meta {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+    font-size: 0.85rem;
+    align-items: center;
+}
+
+.document-category {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.document-category {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.document-date {
+    color: #a0aec0;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+}
+
+.document-date::before {
+    content: '•';
+    margin-right: 6px;
+    color: #cbd5e0;
+}
+
+
+
+/* Selection checkbox */
+.document-item {
+    position: relative;
+}
+
+.document-item .doc-select {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 18px;
+    height: 18px;
+}
+
+.documents-bulk-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.documents-filters {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    grid-column: 1 / -1;
+}
+
+.empty-content i {
+    display: block;
+    font-size: 3rem;
+    color: #cbd5e0;
+    margin-bottom: 15px;
+}
+
+.empty-content h4 {
+    color: #718096;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.empty-content h3 {
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.empty-content p {
+    color: #a0aec0;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.btn-sm {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+}
+
+.btn-primary.btn-sm {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+}
+
+.btn-primary.btn-sm:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary.btn-sm {
+    background: #f8f9fa;
+    color: #6c757d;
+    border-color: #e9ecef;
+}
+
+.btn-secondary.btn-sm:hover {
+    background: #e9ecef;
+    color: #5a6268;
+    border-color: #dee2e6;
+}
+
+.btn-danger.btn-sm {
+    background: #fee;
+    color: #dc3545;
+    border-color: #fecaca;
+}
+
+.btn-danger.btn-sm:hover {
+    background: #fecaca;
+    color: #b91c1c;
+    border-color: #f87171;
+}
+
+
+
+.summary-category {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.classification-category {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.ocr-category {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.ner-category {
+    background: #e8f4fd;
+    color: #1976d2;
+}
+
+@media (max-width: 768px) {
+    .documents-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .documents-title h1 {
+        font-size: 1.6rem;
+    }
+    
+    .search-box {
+        width: 100%;
+    }
+    
+    .documents-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        padding: 15px 20px;
+    }
+    
+    .section-content {
+        padding: 20px;
+    }
+    
+    .section-content.collapsed {
+        padding: 0 20px;
+    }
+    
+    .document-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .document-actions {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %} 

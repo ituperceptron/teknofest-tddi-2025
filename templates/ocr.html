@@ -1,0 +1,755 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Obje ve Karakter Tanıma{% endblock %}
+{% block page_title %}Obje ve Karakter Tanıma{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-nav">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Kontrol Paneli</span>
+        </a>
+    </div>
+    <div class="page-title">
+        <h1><i class="fas fa-camera"></i> Obje ve Karakter Tanıma</h1>
+        <p>Görsellerden veya PDF'lerden metin çıkarın.</p>
+    </div>
+</div>
+
+<div class="ocr-container">
+                <!-- Obje ve Karakter Tanıma Seçenekleri -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Obje ve Karakter Tanıma Yöntemi Seçin</h2>
+            <i class="fas fa-camera"></i>
+        </div>
+        
+        <div class="summary-options">
+            <button class="option-btn active" id="pdfOption">
+                <i class="fas fa-file-pdf"></i>
+                <span>PDF ile Karakter Tanıma</span>
+            </button>
+            <button class="option-btn" id="imageOption">
+                <i class="fas fa-image"></i>
+                <span>Resim ile Karakter Tanıma</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PDF Yükleme Bölümü -->
+    <div class="card" id="pdfSection">
+        <div class="card-header">
+            <h2 class="card-title">PDF Dosyası Yükle</h2>
+            <i class="fas fa-upload"></i>
+        </div>
+        
+        <div class="pdf-upload-area">
+            <div class="upload-zone" id="uploadZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>PDF Dosyasını Buraya Sürükleyin</h3>
+                <p>veya</p>
+                <label for="pdfInput" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i>
+                    Dosya Seç
+                </label>
+                <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- Yüklenen PDF Listesi -->
+        <div class="pdf-list" id="pdfList" style="display: none;">
+            <h3>Yüklenen PDF Dosyası</h3>
+            <div class="pdf-items" id="pdfItems">
+                <!-- PDF dosyası buraya eklenecek -->
+            </div>
+            <button class="btn btn-primary" id="ocrPdf" style="display: none;">
+                <i class="fas fa-magic"></i>
+                PDF'den Karakter Tanı
+            </button>
+        </div>
+    </div>
+
+    <!-- Resim Yükleme Bölümü -->
+    <div class="card" id="imageSection" style="display: none;">
+        <div class="card-header">
+            <h2 class="card-title">Resim Dosyası Yükle</h2>
+            <i class="fas fa-upload"></i>
+        </div>
+        
+        <div class="image-upload-area">
+            <div class="upload-zone" id="imageUploadZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Resim Dosyasını Buraya Sürükleyin</h3>
+                <p>veya</p>
+                <label for="imageInput" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i>
+                    Dosya Seç
+                </label>
+                <input type="file" id="imageInput" accept=".jpg,.jpeg,.png,.bmp,.tiff" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- Yüklenen Resim Listesi -->
+        <div class="image-list" id="imageList" style="display: none;">
+            <h3>Yüklenen Resim Dosyası</h3>
+            <div class="image-items" id="imageItems">
+                <!-- Resim dosyası buraya eklenecek -->
+            </div>
+            <button class="btn btn-primary" id="ocrImage" style="display: none;">
+                <i class="fas fa-magic"></i>
+                Resimden Karakter Tanı
+            </button>
+        </div>
+    </div>
+    
+    <!-- Karakter Tanıma Sonucu -->
+    <div class="card" id="ocrResult" style="display: none;">
+        <div class="card-header">
+            <h2 class="card-title">Karakter Tanıma Sonucu</h2>
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <div class="ocr-result-content">
+            <div class="result-info">
+                <div class="info-item">
+                    <span class="info-label">Dosya:</span>
+                    <span class="info-value" id="resultFileName"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Çıkarılan Metin Uzunluğu:</span>
+                    <span class="info-value" id="resultTextLength"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">İşlem Tarihi:</span>
+                    <span class="info-value" id="resultDate"></span>
+                </div>
+            </div>
+            
+            <div class="extracted-text-container">
+                <h3>Çıkarılan Metin</h3>
+                <div class="text-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="copyText()">
+                        <i class="fas fa-copy"></i>
+                        Kopyala
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="downloadText()">
+                        <i class="fas fa-download"></i>
+                        İndir
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="saveOcrResult()">
+                        <i class="fas fa-save"></i>
+                        Kaydet
+                    </button>
+                </div>
+                <div class="extracted-text" id="extractedText">
+                    <!-- Çıkarılan metin buraya gelecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedPdf = null;
+let selectedImage = null;
+
+// Tab switching
+document.getElementById('pdfOption').addEventListener('click', function() {
+    document.getElementById('pdfOption').classList.add('active');
+    document.getElementById('imageOption').classList.remove('active');
+    document.getElementById('pdfSection').style.display = 'block';
+    document.getElementById('imageSection').style.display = 'none';
+    document.getElementById('ocrResult').style.display = 'none';
+});
+
+document.getElementById('imageOption').addEventListener('click', function() {
+    document.getElementById('imageOption').classList.add('active');
+    document.getElementById('pdfOption').classList.remove('active');
+    document.getElementById('imageSection').style.display = 'block';
+    document.getElementById('pdfSection').style.display = 'none';
+    document.getElementById('ocrResult').style.display = 'none';
+});
+
+// PDF Upload functionality
+const pdfInput = document.getElementById('pdfInput');
+const uploadZone = document.getElementById('uploadZone');
+const pdfList = document.getElementById('pdfList');
+const pdfItems = document.getElementById('pdfItems');
+const ocrPdfBtn = document.getElementById('ocrPdf');
+
+// Drag and drop for PDF
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type === 'application/pdf') {
+        handlePdfFile(files[0]);
+    }
+});
+
+pdfInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handlePdfFile(e.target.files[0]);
+    }
+});
+
+function handlePdfFile(file) {
+    if (selectedPdf) {
+        // Remove previous file
+        selectedPdf = null;
+        pdfItems.innerHTML = '';
+    }
+    
+    selectedPdf = file;
+    
+    const formData = new FormData();
+    formData.append('pdf_file', file);
+    
+    fetch('/upload_ocr_pdf', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            selectedPdf.temp_id = data.temp_id;
+            displayPdfFile(file);
+            pdfList.style.display = 'block';
+            ocrPdfBtn.style.display = 'block';
+        } else {
+            alert('PDF yükleme hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('PDF yükleme sırasında hata oluştu');
+    });
+}
+
+function displayPdfFile(file) {
+    pdfItems.innerHTML = `
+        <div class="pdf-item">
+            <div class="pdf-icon">
+                <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="pdf-info">
+                <h4>${file.name}</h4>
+                <p>${(file.size / 1024).toFixed(1)} KB</p>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="removePdf()">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+}
+
+function removePdf() {
+    selectedPdf = null;
+    pdfItems.innerHTML = '';
+    pdfList.style.display = 'none';
+    ocrPdfBtn.style.display = 'none';
+}
+
+// Image Upload functionality
+const imageInput = document.getElementById('imageInput');
+const imageUploadZone = document.getElementById('imageUploadZone');
+const imageList = document.getElementById('imageList');
+const imageItems = document.getElementById('imageItems');
+const ocrImageBtn = document.getElementById('ocrImage');
+
+// Drag and drop for Image
+imageUploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    imageUploadZone.classList.add('dragover');
+});
+
+imageUploadZone.addEventListener('dragleave', () => {
+    imageUploadZone.classList.remove('dragover');
+});
+
+imageUploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    imageUploadZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+        handleImageFile(files[0]);
+    }
+});
+
+imageInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleImageFile(e.target.files[0]);
+    }
+});
+
+function handleImageFile(file) {
+    if (selectedImage) {
+        // Remove previous file
+        selectedImage = null;
+        imageItems.innerHTML = '';
+    }
+    
+    selectedImage = file;
+    
+    const formData = new FormData();
+    formData.append('image_file', file);
+    
+    fetch('/upload_ocr_image', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            selectedImage.temp_id = data.temp_id;
+            displayImageFile(file);
+            imageList.style.display = 'block';
+            ocrImageBtn.style.display = 'block';
+        } else {
+            alert('Resim yükleme hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Resim yükleme sırasında hata oluştu');
+    });
+}
+
+function displayImageFile(file) {
+    imageItems.innerHTML = `
+        <div class="image-item">
+            <div class="image-preview">
+                <img src="${URL.createObjectURL(file)}" alt="${file.name}" style="max-width: 100px; max-height: 100px;">
+            </div>
+            <div class="image-info">
+                <h4>${file.name}</h4>
+                <p>${(file.size / 1024).toFixed(1)} KB</p>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="removeImage()">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+}
+
+function removeImage() {
+    selectedImage = null;
+    imageItems.innerHTML = '';
+    imageList.style.display = 'none';
+    ocrImageBtn.style.display = 'none';
+}
+
+// OCR Processing
+ocrPdfBtn.addEventListener('click', () => {
+    if (selectedPdf && selectedPdf.temp_id) {
+        processOcrPdf(selectedPdf.temp_id);
+    }
+});
+
+ocrImageBtn.addEventListener('click', () => {
+    if (selectedImage && selectedImage.temp_id) {
+        processOcrImage(selectedImage.temp_id);
+    }
+});
+
+function processOcrPdf(tempId) {
+    const button = document.getElementById('ocrPdf');
+    setButtonLoading(button, true);
+
+    fetch('/ocr_pdf', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            pdf_id: tempId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showOcrResult(data, selectedPdf.name, 'pdf');
+        } else {
+            alert('OCR işlemi hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('OCR işlemi sırasında hata oluştu');
+    })
+    .finally(() => {
+        setButtonLoading(button, false);
+    });
+}
+
+function processOcrImage(tempId) {
+    const button = document.getElementById('ocrImage');
+    setButtonLoading(button, true);
+
+    fetch('/ocr_image', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            image_id: tempId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showOcrResult(data, selectedImage.name, 'image');
+        } else {
+            alert('OCR işlemi hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('OCR işlemi sırasında hata oluştu');
+    })
+    .finally(() => {
+        setButtonLoading(button, false);
+    });
+}
+
+function showOcrResult(data, fileName, sourceType = 'unknown') {
+    document.getElementById('resultFileName').textContent = fileName;
+    document.getElementById('resultTextLength').textContent = data.extracted_text.length + ' karakter';
+    document.getElementById('resultDate').textContent = new Date().toLocaleString('tr-TR');
+    document.getElementById('extractedText').textContent = data.extracted_text;
+    document.getElementById('ocrResult').style.display = 'block';
+    
+    // Store source info for saving
+    currentSourceType = sourceType;
+    currentSourceFilename = fileName;
+    
+    // Scroll to result
+    document.getElementById('ocrResult').scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyText() {
+    const text = document.getElementById('extractedText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Metin panoya kopyalandı!');
+    });
+}
+
+function downloadText() {
+    const text = document.getElementById('extractedText').textContent;
+    const fileName = document.getElementById('resultFileName').textContent;
+    const nameWithoutExt = fileName.split('.')[0];
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nameWithoutExt + '_ocr.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Global variables to store source info
+let currentSourceType = '';
+let currentSourceFilename = '';
+
+function saveOcrResult() {
+    const ocrText = document.getElementById('extractedText').textContent;
+    const fileName = document.getElementById('resultFileName').textContent;
+    
+    if (!ocrText || ocrText.trim() === '') {
+                        alert('Kaydedilecek Obje ve Karakter Tanıma sonucu bulunmuyor!');
+        return;
+    }
+    
+    // Get the save button
+    const saveButton = document.querySelector('.btn[onclick="saveOcrResult()"]');
+    const originalText = saveButton.innerHTML;
+    const originalClass = saveButton.className;
+    
+    // Change button to loading state
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
+    saveButton.disabled = true;
+    saveButton.className = saveButton.className.replace('btn-primary', 'btn-warning');
+    
+    // Send OCR result to backend to save as file
+    console.log('OCR kaydetme isteği gönderiliyor...');
+    fetch('/save_ocr_result', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ocr_text: ocrText,
+            source_type: currentSourceType || 'unknown',
+            source_filename: fileName || 'Bilinmeyen'
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Success state - green button
+            saveButton.innerHTML = '<i class="fas fa-check"></i> Kaydedildi';
+            saveButton.className = saveButton.className.replace('btn-warning', 'btn-success');
+            
+                            console.log('Obje ve Karakter Tanıma sonucu başarıyla kaydedildi!');
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                saveButton.innerHTML = originalText;
+                saveButton.className = originalClass;
+                saveButton.disabled = false;
+            }, 3000);
+        } else {
+            console.error('Kaydetme başarısız:', data.error);
+            // Error state - red button
+            saveButton.innerHTML = '<i class="fas fa-times"></i> Hata!';
+            saveButton.className = saveButton.className.replace('btn-warning', 'btn-danger');
+            
+            alert('Kaydetme hatası: ' + (data.error || 'Bilinmeyen hata'));
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                saveButton.innerHTML = originalText;
+                saveButton.className = originalClass;
+                saveButton.disabled = false;
+            }, 3000);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        
+        // Error state - red button
+        saveButton.innerHTML = '<i class="fas fa-times"></i> Hata!';
+        saveButton.className = saveButton.className.replace('btn-warning', 'btn-danger');
+        
+        alert('Bağlantı hatası: ' + error.message);
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+            saveButton.innerHTML = originalText;
+            saveButton.className = originalClass;
+            saveButton.disabled = false;
+        }, 3000);
+    });
+}
+</script>
+
+<style>
+.ocr-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.summary-options {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.option-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.option-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.option-btn.active i {
+    color: white;
+}
+
+.option-btn i {
+    font-size: 2rem;
+}
+
+.option-btn span {
+    font-weight: 500;
+    text-align: center;
+}
+
+.upload-zone {
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.upload-zone.dragover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.upload-zone i {
+    font-size: 3rem;
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.upload-zone label {
+    background: #f8f9fa;
+    color: #333;
+}
+
+.upload-zone label i {
+    color: #555;
+}
+
+.upload-zone h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.upload-zone p {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.pdf-item, .image-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.pdf-icon, .image-preview {
+    flex-shrink: 0;
+}
+
+.pdf-icon i {
+    font-size: 2rem;
+    color: #dc3545;
+}
+
+.image-preview img {
+    border-radius: 4px;
+}
+
+.pdf-info, .image-info {
+    flex: 1;
+}
+
+.pdf-info h4, .image-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+}
+
+.pdf-info p, .image-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.ocr-result-content {
+    padding: 20px 0;
+}
+
+.result-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.info-value {
+    color: #666;
+}
+
+.extracted-text-container {
+    position: relative;
+}
+
+.text-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: 10px;
+}
+
+.extracted-text {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 200px;
+    white-space: pre-wrap;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin-top: 50px;
+}
+
+@media (max-width: 768px) {
+    .summary-options {
+        flex-direction: column;
+    }
+    
+    .result-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .text-actions {
+        position: static;
+        margin-bottom: 15px;
+    }
+    
+    .extracted-text {
+        margin-top: 0;
+    }
+}
+</style>
+{% endblock %} 

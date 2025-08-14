@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Sınıflandırma PDF'lerim{% endblock %}
+{% block page_title %}Sınıflandırma PDF'lerim{% endblock %}
+
+{% block content %}
+<div class="pdfs-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Sınıflandırma PDF Dosyalarım</h2>
+            <i class="fas fa-file-pdf"></i>
+        </div>
+        
+        {% if classification_pdfs %}
+        <div class="pdf-list">
+            {% for pdf in classification_pdfs %}
+            <div class="pdf-item">
+                <div class="pdf-info">
+                    <i class="fas fa-file-pdf"></i>
+                    <div class="pdf-details">
+                        <h4>{{ pdf[2] }}</h4>
+                        <p>Yüklenme Tarihi: {{ pdf[5] }}</p>
+                        <p>Dosya Boyutu: {{ (pdf[4] / 1024) | round(1) }} KB</p>
+                    </div>
+                </div>
+                <div class="pdf-actions">
+                    <a href="{{ url_for('static', filename='uploads/classification_pdfs/' + pdf[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye"></i>
+                        Görüntüle
+                    </a>
+                    <button class="btn btn-sm btn-secondary" onclick="downloadPdf('{{ pdf[3] }}', '{{ pdf[2] }}')">
+                        <i class="fas fa-download"></i>
+                        İndir
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePdf({{ pdf[0] }})">
+                        <i class="fas fa-trash"></i>
+                        Sil
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-file-pdf"></i>
+            <h3>Henüz Sınıflandırma PDF'i Yüklemediniz</h3>
+            <p>Sınıflandırma sayfasından PDF yükleyerek başlayın.</p>
+            <a href="{{ url_for('classification') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                PDF Yükle
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function downloadPdf(filename, originalName) {
+    const link = document.createElement('a');
+    link.href = `/static/uploads/classification_pdfs/${filename}`;
+    link.download = originalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function deletePdf(pdfId) {
+    if (confirm('Bu PDF dosyasını silmek istediğinizden emin misiniz?')) {
+        fetch(`/delete_classification_pdf/${pdfId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('PDF silme hatası: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('PDF silme sırasında hata oluştu.');
+        });
+    }
+}
+</script>
+
+<style>
+.pdfs-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pdf-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.pdf-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.pdf-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.pdf-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pdf-info i {
+    font-size: 2rem;
+    color: #dc3545;
+}
+
+.pdf-details h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.pdf-details p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.pdf-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.empty-state p {
+    margin: 0 0 30px 0;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .pdf-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .pdf-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Kontrol Paneli{% endblock %}
+{% block page_title %}Kontrol Paneli{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-text">
+                <h1>Kontrol Paneli</h1>
+                <p>AI destekli metin işleme araçlarınızı kullanmaya başlayın.</p>
+            </div>
+            <div class="header-profile">
+                <div class="profile-dropdown">
+                    <button class="profile-button" onclick="toggleProfileDropdown()">
+                        <div class="profile-avatar">
+                            <img src="{{ url_for('static', filename='images/Teknofest_logo_pfp.png') }}" alt="Profile" class="profile-image">
+                        </div>
+                        <div class="profile-info">
+                            <span class="profile-name">{{ session.username }}</span>
+                        </div>
+                        <i class="fas fa-chevron-down profile-arrow"></i>
+                    </button>
+                    <div class="dropdown-menu" id="profileDropdown">
+                        <a href="{{ url_for('logout') }}" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Çıkış Yap</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="confirmDeleteAccount()">
+                            <i class="fas fa-trash"></i>
+                            <span>Hesabımı Sil</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Erişim - 1 Row 4 Columns -->
+    <div class="quick-access-section">
+        <div class="section-header">
+            <h2><i class="fas fa-bolt"></i> Hızlı Erişim</h2>
+        </div>
+        <div class="quick-access-row">
+            <a href="{{ url_for('summary') }}" class="quick-access-card">
+                <div class="quick-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="quick-content">
+                    <h4>Özetleme</h4>
+                    <p>Metinleri özetleyin</p>
+                </div>
+            </a>
+            <a href="{{ url_for('classification') }}" class="quick-access-card">
+                <div class="quick-icon">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="quick-content">
+                    <h4>Sınıflandırma</h4>
+                    <p>Metinleri kategorize edin</p>
+                </div>
+            </a>
+            <a href="{{ url_for('ocr') }}" class="quick-access-card">
+                <div class="quick-icon">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <div class="quick-content">
+                    <h4>Obje ve Karakter Tanıma</h4>
+                    <p>Görsellerden metin çıkarın</p>
+                </div>
+            </a>
+            <a href="{{ url_for('ner') }}" class="quick-access-card">
+                <div class="quick-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="quick-content">
+                    <h4>Varlık Tanıma</h4>
+                    <p>Kişi, yer ve organizasyon tespit edin</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Bottom Section - 1 Row 2 Columns -->
+    <div class="dashboard-bottom">
+        <!-- Belgeler -->
+        <div class="bottom-card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-file-alt"></i> Yüklenen Belgeler</h2>
+            </div>
+        <div class="documents-list">
+            {% if recent_files %}
+                {% for doc_type, doc in recent_files %}
+                    {% if doc_type == 'summary_pdf' %}
+                    <div class="document-item pdf-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>PDF dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category summary-category">Özetleme</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'classification_pdf' %}
+                    <div class="document-item pdf-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>PDF dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category classification-category">Sınıflandırma</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'ocr_pdf' %}
+                    <div class="document-item pdf-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>PDF dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category ocr-category">Karakter ve Obje Tanıma</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'ocr_image' %}
+                    <div class="document-item image-item">
+                        <div class="document-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>Resim dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category ocr-category">Karakter ve Obje Tanıma</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'summary_text' %}
+                    <div class="document-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>Metin dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category summary-category">Özetleme</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'classification_text' %}
+                    <div class="document-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>Metin dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category classification-category">Sınıflandırma</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'ner_text' %}
+                    <div class="document-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>Metin dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category ner-category">Varlık Tanıma</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif doc_type == 'ner_pdf' %}
+                    <div class="document-item pdf-item">
+                        <div class="document-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ doc[2] }}</h4>
+                            <p>PDF dosyası - {{ (doc[4] / 1024) | round(1) }} KB</p>
+                            <div class="document-meta">
+                                <span class="document-category ner-category">Varlık Tanıma</span>
+                                <span class="document-date">{{ doc[5] }}</span>
+    
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=doc[3]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-content">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Henüz belge bulunmuyor</h3>
+                        <p>İlk belgenizi yükledikten sonra burada görünecek.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+            <div class="view-all-link">
+                <a href="{{ url_for('documents') }}" class="btn btn-secondary">
+                    <i class="fas fa-eye"></i>
+                    Tümünü Gör
+                </a>
+            </div>
+        </div>
+        
+        <!-- İşlem Çıktıları -->
+        <div class="bottom-card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-history"></i> İşlem Çıktıları</h2>
+            </div>
+            <div class="documents-list">
+            {% if recent_works %}
+                {% for work in recent_works %}
+                    <div class="document-item">
+                        <div class="document-icon">
+                            {% if work[3] == 'summary_result' %}
+                                <i class="fas fa-file-text"></i>
+                            {% elif work[3] == 'classification_result' %}
+                                <i class="fas fa-file-alt"></i>
+                            {% elif work[3] == 'ocr_result' %}
+                                <i class="fas fa-eye"></i>
+                            {% elif work[3] == 'ner_result' %}
+                                <i class="fas fa-search"></i>
+                            {% endif %}
+                        </div>
+                        <div class="document-content">
+                            <h4>{{ work[2] }}</h4>
+                            <p>{{ work[5] }}</p>
+                            <div class="document-meta">
+                                <span class="document-category {% if work[3] == 'summary_result' %}summary-category{% elif work[3] == 'classification_result' %}classification-category{% elif work[3] == 'ocr_result' %}ocr-category{% elif work[3] == 'ner_result' %}ner-category{% endif %}">
+                                    {% if work[3] == 'summary_result' %}Özet Sonucu{% elif work[3] == 'classification_result' %}Sınıflandırma Sonucu{% elif work[3] == 'ocr_result' %}Obje ve Karakter Tanıma Sonucu{% elif work[3] == 'ner_result' %}Varlık Tanıma Sonucu{% endif %}
+                                </span>
+                                <span class="document-date">{{ work[4] if work[4] else '' }}</span>
+
+
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ url_for('serve_upload', filename=work[6]) }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Görüntüle
+                                </a>
+                                <a href="{{ url_for('serve_upload', filename=work[6]) }}" download class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-content">
+                        <i class="fas fa-history"></i>
+                        <h3>Henüz işlem bulunmuyor</h3>
+                        <p>Özetleme, sınıflandırma, Obje ve Karakter Tanıma veya Varlık Tanıma işlemi yaptığınızda burada görünecek.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+            <div class="view-all-link">
+                <a href="{{ url_for('previous_works') }}" class="btn btn-secondary">
+                    <i class="fas fa-eye"></i>
+                    Tümünü Gör
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleProfileDropdown() {
+    const dropdown = document.getElementById('profileDropdown');
+    const button = document.querySelector('.profile-button');
+    
+    dropdown.classList.toggle('show');
+    button.classList.toggle('active');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('profileDropdown');
+    const button = document.querySelector('.profile-button');
+    
+    if (!event.target.closest('.profile-dropdown')) {
+        dropdown.classList.remove('show');
+        button.classList.remove('active');
+    }
+});
+
+// Work functions removed - only view action needed
+
+// Account deletion functions
+function confirmDeleteAccount() {
+    document.getElementById('deleteAccountModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteAccountModal').style.display = 'none';
+}
+
+function deleteAccount() {
+    // Show loading state
+    const deleteBtn = event.target;
+    const originalText = deleteBtn.innerHTML;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Siliniyor...';
+    deleteBtn.disabled = true;
+    
+    fetch('/delete_account', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Hesabınız başarıyla silindi. Ana sayfaya yönlendiriliyorsunuz...');
+            window.location.href = '/';
+        } else {
+            alert('Hata: ' + data.error);
+            // Reset button
+            deleteBtn.innerHTML = originalText;
+            deleteBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+        // Reset button
+        deleteBtn.innerHTML = originalText;
+        deleteBtn.disabled = false;
+    });
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteAccountModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+
+<!-- Delete Account Confirmation Modal -->
+<div id="deleteAccountModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Hesap Silme Onayı</h3>
+        </div>
+        <div class="modal-body">
+            <p>Bu işlem geri alınamaz! Hesabınızı silmek istediğinizden emin misiniz?</p>
+            <p><strong>Silinecek veriler:</strong></p>
+            <ul>
+                <li>Tüm yüklenen dosyalar</li>
+                <li>Tüm işlem sonuçları</li>
+                <li>Hesap bilgileri</li>
+                <li>Kullanıcı verileri</li>
+            </ul>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">İptal</button>
+            <button class="btn btn-danger" onclick="deleteAccount()">Evet, Hesabımı Sil</button>
+        </div>
+    </div>
+</div>
+{% endblock %} 

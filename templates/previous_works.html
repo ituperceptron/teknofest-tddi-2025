@@ -1,0 +1,713 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Önceki İşlemler{% endblock %}
+{% block page_title %}Önceki İşlemler{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-nav">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Kontrol Paneli</span>
+        </a>
+    </div>
+    <div class="page-title">
+        <h1><i class="fas fa-history"></i> Önceki İşlemler</h1>
+        <p>Geçmiş özetleme ve sınıflandırma işlemlerinizi görüntüleyin.</p>
+    </div>
+</div>
+
+<div class="previous-works-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Önceki İşlemler</h2>
+            <div class="header-actions">
+                <button class="btn btn-sm btn-primary" onclick="selectAll()" id="select-all-btn">
+                    <i class="fas fa-check-square"></i> Tümünü Seç
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteSelected()" id="delete-selected-btn" style="display: none;">
+                    <i class="fas fa-trash"></i> Seçilenleri Sil
+                </button>
+                <span class="selected-count" id="selected-count" style="display: none;">0 öğe seçildi</span>
+            </div>
+        </div>
+        
+        <div class="works-filters">
+            <div class="filter-group">
+                <label for="work-type-filter">İşlem Türü:</label>
+                <select id="work-type-filter" class="form-control" onchange="applyFilters()">
+                    <option value="">Tümü</option>
+                    <option value="summary_result">Özet Sonuçları</option>
+                    <option value="classification_result">Sınıflandırma Sonuçları</option>
+                    <option value="ocr_result">OCR Sonuçları</option>
+                    <option value="ner_result">NER Sonuçları</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="date-filter">Tarih:</label>
+                <select id="date-filter" class="form-control" onchange="applyFilters()">
+                    <option value="">Tümü</option>
+                    <option value="today">Bugün</option>
+                    <option value="week">Bu Hafta</option>
+                    <option value="month">Bu Ay</option>
+                    <option value="year">Bu Yıl</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                <i class="fas fa-times"></i>
+                Temizle
+            </button>
+        </div>
+    </div>
+    
+            <div class="works-list">
+        {% if works %}
+            {% for work in works %}
+            <div class="card work-item" data-work-type="{{ work[3] }}" data-work-id="{{ work[0] }}">
+                <div class="work-header">
+                    <div class="work-checkbox">
+                        <input type="checkbox" class="work-select" onchange="updateSelectionCount()">
+                    </div>
+                    <div class="work-info">
+                        <h3>{{ work[2] }}</h3>
+                        <p class="work-description">{{ work[5] }}</p>
+                        <div class="work-meta">
+                            <span class="work-type 
+                                {% if work[3] == 'summary_result' %}summary-type
+                                {% elif work[3] == 'classification_result' %}classification-type
+                                {% elif work[3] == 'ocr_result' %}ocr-type
+                                {% elif work[3] == 'ner_result' %}ner-type
+                                {% endif %}">
+                                {% if work[3] == 'summary_result' %}Özet Sonucu
+                                {% elif work[3] == 'classification_result' %}Sınıflandırma Sonucu
+                                {% elif work[3] == 'ocr_result' %}Obje ve Karakter Tanıma Sonucu
+                                {% elif work[3] == 'ner_result' %}Varlık Tanıma Sonucu
+                                {% else %}{{ work[3] }}{% endif %}
+                            </span>
+                            <span class="work-date">{{ work[4] if work[4] else '' }}</span>
+                        </div>
+                    </div>
+                    <div class="work-actions">
+                        <a href="{{ url_for('serve_upload', filename=work[6]) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                            Görüntüle
+                        </a>
+                        <a href="{{ url_for('serve_upload', filename=work[6]) }}" download class="btn btn-sm btn-secondary">
+                            <i class="fas fa-download"></i>
+                            İndir
+                        </a>
+                        <button class="btn btn-sm btn-danger" onclick="deleteWork({{ work[0] }}, '{{ work[3] }}')">
+                            <i class="fas fa-trash"></i>
+                            Sil
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card empty-state">
+                <div class="empty-content">
+                    <i class="fas fa-history"></i>
+                    <h3>Henüz işlem bulunmuyor</h3>
+                    <p>Özetleme veya sınıflandırma işlemi yaptığınızda burada görünecek.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+
+
+<script>
+
+
+function applyFilters() {
+    const typeFilter = document.getElementById('work-type-filter').value;
+    const dateFilter = document.getElementById('date-filter').value;
+    
+    console.log('Filtreler:', { typeFilter, dateFilter });
+    
+    // Orijinal işlemleri geri yükle (eğer boş durum mesajı gösteriliyorsa)
+    const emptyState = document.querySelector('.empty-state');
+    if (emptyState && emptyState.querySelector('.empty-content h3').textContent === 'Filtreye uygun işlem bulunamadı') {
+        location.reload();
+        return;
+    }
+    
+    const workItems = document.querySelectorAll('.work-item');
+    console.log('Toplam işlem sayısı:', workItems.length);
+    
+    let visibleCount = 0;
+    
+    workItems.forEach((item, index) => {
+        const workType = item.getAttribute('data-work-type');
+        let shouldShow = true;
+        
+        console.log(`İşlem ${index + 1}:`, { workType });
+        
+        // İşlem türü filtresi
+        if (typeFilter && typeFilter !== '') {
+            if (typeFilter === 'ocr_pdf' || typeFilter === 'ocr_image') {
+                // OCR filtreleri için özel kontrol
+                shouldShow = (workType === 'ocr_pdf' || workType === 'ocr_image');
+            } else {
+                shouldShow = (workType === typeFilter);
+            }
+            console.log(`İşlem ${index + 1} tür filtresi:`, shouldShow);
+        }
+        
+        // Tarih filtresi
+        if (dateFilter && dateFilter !== '' && shouldShow) {
+            shouldShow = checkDateFilter(item, dateFilter);
+            console.log(`İşlem ${index + 1} tarih filtresi:`, shouldShow);
+        }
+        
+        if (shouldShow) {
+            item.style.display = 'block';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    console.log('Görünür işlem sayısı:', visibleCount);
+    
+    // Eğer hiç görünür öğe yoksa, boş durum mesajını göster
+    if (visibleCount === 0 && workItems.length > 0) {
+        // Tüm işlemleri gizle
+        workItems.forEach(item => {
+            item.style.display = 'none';
+        });
+        
+        // Boş durum mesajını göster
+        const worksList = document.querySelector('.works-list');
+        worksList.innerHTML = `
+            <div class="card empty-state">
+                <div class="empty-content">
+                    <i class="fas fa-filter"></i>
+                    <h3>Filtreye uygun işlem bulunamadı</h3>
+                    <p>Seçtiğiniz filtrelere uygun işlem bulunmuyor.</p>
+                    <button class="btn btn-primary" onclick="clearFilters()">
+                        <i class="fas fa-times"></i>
+                        Filtreleri Temizle
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function checkDateFilter(item, dateFilter) {
+    const workDateElement = item.querySelector('.work-date');
+    if (!workDateElement) {
+        console.log('Tarih elementi bulunamadı');
+        return true;
+    }
+    
+    const workDateText = workDateElement.textContent.trim();
+    if (!workDateText) {
+        console.log('Tarih metni boş');
+        return true;
+    }
+    
+    console.log('Tarih metni:', workDateText);
+    
+    // Tarih formatını parse et
+    let workDate;
+    
+    // YYYY-MM-DD formatını dene
+    if (workDateText.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        workDate = new Date(workDateText);
+    } else {
+        workDate = new Date(workDateText);
+    }
+    
+    if (isNaN(workDate.getTime())) {
+        console.log('Tarih parse edilemedi:', workDateText);
+        return true;
+    }
+    
+    console.log('Parse edilen tarih:', workDate);
+    
+    const today = new Date();
+    const workDateOnly = new Date(workDate.getFullYear(), workDate.getMonth(), workDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    switch (dateFilter) {
+        case 'today':
+            console.log('Bugün karşılaştırması:', workDateOnly, 'vs', todayOnly);
+            return workDateOnly.getTime() === todayOnly.getTime();
+            
+        case 'week':
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay()); // Pazar günü
+            startOfWeek.setHours(0, 0, 0, 0);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 7);
+            console.log('Hafta aralığı:', startOfWeek, 'to', endOfWeek);
+            return workDateOnly >= startOfWeek && workDateOnly < endOfWeek;
+            
+        case 'month':
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            console.log('Ay aralığı:', startOfMonth, 'to', endOfMonth);
+            return workDateOnly >= startOfMonth && workDateOnly < endOfMonth;
+            
+        case 'year':
+            const startOfYear = new Date(today.getFullYear(), 0, 1);
+            const endOfYear = new Date(today.getFullYear() + 1, 0, 1);
+            console.log('Yıl aralığı:', startOfYear, 'to', endOfYear);
+            return workDateOnly >= startOfYear && workDateOnly < endOfYear;
+            
+        default:
+            return true;
+    }
+}
+
+function clearFilters() {
+    document.getElementById('work-type-filter').value = '';
+    document.getElementById('date-filter').value = '';
+    console.log('Filtreler temizlendi');
+    
+    // Sayfayı yenile
+    location.reload();
+}
+
+function viewWork(filePath, workType) {
+    if (workType === 'summary') {
+        // Open summary PDF in new tab
+        window.open(`/uploads/summary_pdfs/${filePath}`, '_blank');
+    } else if (workType === 'classification') {
+        // Open classification PDF in new tab
+        window.open(`/uploads/classification_pdfs/${filePath}`, '_blank');
+    }
+}
+
+function confirmDeleteWork(workId, workType){
+    openConfirmModal('Bu işlemi silmek istediğinizden emin misiniz?', function(){
+        deleteWork(workId, workType);
+    });
+}
+
+function deleteWork(workId, workType) {
+    if (!confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    let url;
+    if (workType === 'summary_result') {
+        url = `/delete_work_result/summary_results/${workId}`;
+    } else if (workType === 'classification_result') {
+        url = `/delete_work_result/classification_results/${workId}`;
+    } else if (workType === 'ocr_result') {
+        url = `/delete_work_result/ocr_results/${workId}`;
+    } else if (workType === 'ner_result') {
+        url = `/delete_work_result/ner_results/${workId}`;
+    } else {
+        console.error('Unknown work type:', workType);
+        alert('Bilinmeyen iş türü: ' + workType);
+        return;
+    }
+    
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the work item from the DOM
+            const workItem = document.querySelector(`[data-work-id="${workId}"]`);
+            if (workItem) {
+                workItem.remove();
+                updateSelectionCount();
+            }
+            
+            // Check if no works left
+            const remainingWorks = document.querySelectorAll('.work-item');
+            if (remainingWorks.length === 0) {
+                location.reload(); // Reload to show empty state
+            }
+        } else {
+            alert('Silme işlemi başarısız: ' + (data.error || 'Bilinmeyen hata'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Silme işlemi sırasında hata oluştu');
+    });
+}
+
+function exportWorks() {
+    alert('İşlemler dışa aktarılıyor...');
+}
+
+// Modal dışına tıklandığında kapatma
+window.onclick = function(event) {
+    const modal = document.getElementById('newWorkModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// Form gönderimi - sadece form varsa çalıştır
+const workForm = document.querySelector('.work-form');
+if (workForm) {
+    workForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('work-title').value;
+        const description = document.getElementById('work-description').value;
+        const type = document.getElementById('work-type').value;
+        
+        if (!title || !type) {
+            alert('Lütfen gerekli alanları doldurun.');
+            return;
+        }
+        
+        // Demo kaydetme işlemi
+        alert('İşlem başarıyla kaydedildi!');
+        closeModal();
+        
+        // Formu temizle
+        this.reset();
+    });
+}
+
+// Selection functionality
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.work-select');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = !allChecked;
+    });
+    
+    // Update button text
+    selectAllBtn.innerHTML = allChecked 
+        ? '<i class="fas fa-check-square"></i> Tümünü Seç'
+        : '<i class="fas fa-square"></i> Seçimi Temizle';
+    
+    updateSelectionCount();
+}
+
+function updateSelectionCount() {
+    const checkboxes = document.querySelectorAll('.work-select');
+    const checkedBoxes = document.querySelectorAll('.work-select:checked');
+    const deleteBtn = document.getElementById('delete-selected-btn');
+    const countSpan = document.getElementById('selected-count');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    
+    const selectedCount = checkedBoxes.length;
+    
+    if (selectedCount > 0) {
+        deleteBtn.style.display = 'inline-flex';
+        countSpan.style.display = 'inline';
+        countSpan.textContent = `${selectedCount} öğe seçildi`;
+    } else {
+        deleteBtn.style.display = 'none';
+        countSpan.style.display = 'none';
+    }
+    
+    // Update select all button text
+    const allChecked = checkboxes.length > 0 && selectedCount === checkboxes.length;
+    selectAllBtn.innerHTML = allChecked 
+        ? '<i class="fas fa-square"></i> Seçimi Temizle'
+        : '<i class="fas fa-check-square"></i> Tümünü Seç';
+}
+
+function deleteSelected() {
+    const checkedBoxes = document.querySelectorAll('.work-select:checked');
+    if (checkedBoxes.length === 0) {
+        alert('Lütfen silinecek öğeleri seçin.');
+        return;
+    }
+    
+    if (!confirm(`${checkedBoxes.length} öğeyi silmek istediğinizden emin misiniz?`)) {
+        return;
+    }
+    
+    const deletePromises = [];
+    checkedBoxes.forEach(checkbox => {
+        const workItem = checkbox.closest('.work-item');
+        const workId = workItem.getAttribute('data-work-id');
+        const workType = workItem.getAttribute('data-work-type');
+        
+        deletePromises.push(deleteWorkItem(workId, workType, workItem));
+    });
+    
+    Promise.all(deletePromises).then(() => {
+        updateSelectionCount();
+        // Check if no works left
+        const remainingWorks = document.querySelectorAll('.work-item');
+        if (remainingWorks.length === 0) {
+            location.reload(); // Reload to show empty state
+        }
+    });
+}
+
+function deleteWorkItem(workId, workType, workItemElement) {
+    let url;
+    if (workType === 'summary_result') {
+        url = `/delete_work_result/summary_results/${workId}`;
+    } else if (workType === 'classification_result') {
+        url = `/delete_work_result/classification_results/${workId}`;
+    } else if (workType === 'ocr_result') {
+        url = `/delete_work_result/ocr_results/${workId}`;
+    } else if (workType === 'ner_result') {
+        url = `/delete_work_result/ner_results/${workId}`;
+    } else {
+        console.error('Unknown work type:', workType);
+        return Promise.reject('Unknown work type');
+    }
+    
+    return fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            workItemElement.remove();
+        } else {
+            console.error('Delete failed:', data.error);
+            alert('Silme işlemi başarısız: ' + (data.error || 'Bilinmeyen hata'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Silme işlemi sırasında hata oluştu');
+    });
+}
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 10px;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+}
+
+.work-form {
+    padding: 20px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.works-filters {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.work-item {
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.2s ease;
+    padding: 18px;
+}
+
+.work-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.work-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.work-checkbox {
+    flex-shrink: 0;
+    margin-right: 15px;
+}
+
+.work-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+
+
+.work-description {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.work-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+}
+
+.work-type {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.summary-type {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.classification-type {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.ocr-type {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.ner-type {
+    background: #e8f4fd;
+    color: #1976d2;
+}
+
+.work-date {
+    color: #999;
+}
+
+.work-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-content i {
+    font-size: 4rem;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+.empty-content h3 {
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.empty-content p {
+    color: #999;
+    margin-bottom: 20px;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-sm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.work-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.work-info h3 {
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.selected-count {
+    background: #667eea;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+
+
+.work-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+</style>
+{% endblock %} 

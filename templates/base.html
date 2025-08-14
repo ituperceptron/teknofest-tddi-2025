@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GovAI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    {% if session.user_id %}
+    <!-- Main Content -->
+    <div class="main-content">
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+    <!-- Login/Register pages don't have sidebar -->
+    <div class="auth-container">
+        {% block auth_content %}{% endblock %}
+    </div>
+    {% endif %}
+    
+    <!-- App Confirm Modal -->
+    <div id="app-confirm-overlay" class="app-modal-overlay" style="display:none;">
+        <div class="app-modal">
+            <div class="app-modal-header">
+                <h3>Onay</h3>
+                <button class="app-modal-close" onclick="window.closeConfirmModal()">&times;</button>
+            </div>
+            <div class="app-modal-body">
+                <p id="app-confirm-message">Bu işlemi onaylıyor musunuz?</p>
+            </div>
+            <div class="app-modal-footer">
+                <button class="btn btn-secondary" onclick="window.closeConfirmModal()">Vazgeç</button>
+                <button id="app-confirm-ok" class="btn btn-danger">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    (function(){
+        let confirmCallback = null;
+        const overlay = document.getElementById('app-confirm-overlay');
+        const okBtn = document.getElementById('app-confirm-ok');
+        const msgEl = document.getElementById('app-confirm-message');
+
+        window.openConfirmModal = function(message, onConfirm){
+            if (msgEl) msgEl.textContent = message || 'Bu işlemi onaylıyor musunuz?';
+            confirmCallback = typeof onConfirm === 'function' ? onConfirm : null;
+            if (overlay) overlay.style.display = 'flex';
+        };
+
+        window.closeConfirmModal = function(){
+            if (overlay) overlay.style.display = 'none';
+            confirmCallback = null;
+        };
+
+        if (okBtn){
+            okBtn.addEventListener('click', function(){
+                const cb = confirmCallback;
+                window.closeConfirmModal();
+                if (cb) cb();
+            });
+        }
+
+        // Close when clicking outside modal
+        if (overlay){
+            overlay.addEventListener('click', function(e){
+                if (e.target === overlay){
+                    window.closeConfirmModal();
+                }
+            });
+        }
+    })();
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html> 

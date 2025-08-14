@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Ana Sayfa{% endblock %}
+
+{% block auth_content %}
+<div class="auth-split-card">
+    <div class="auth-text-section">
+        <div class="auth-text-content">
+            <h1>GovAI</h1>
+            <p>AI destekli doküman işleme platformuna hoş geldiniz. PDF özetleme, doküman sınıflandırma, Obje ve Karakter Tanıma ve Varlık Tanıma gibi güçlü özelliklerimizle dokümanlarınızı kolayca yönetin.</p>
+            <div class="auth-features-list">
+                <div class="feature-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>PDF Özetleme</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-tags"></i>
+                    <span>Doküman Sınıflandırma</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-search"></i>
+                    <span>Obje ve Karakter Tanıma</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>Varlık Tanıma</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="auth-form-section">
+        <div class="auth-form-card">
+            <div class="auth-form-header">
+                <h2>Başlayın</h2>
+                <p>Hesabınızla giriş yapın veya yeni hesap oluşturun</p>
+            </div>
+            
+            <div class="auth-buttons">
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-full">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Giriş Yap
+                </a>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary btn-full">
+                    <i class="fas fa-user-plus"></i>
+                    Kayıt Ol
+                </a>
+            </div>
+            
+           
+        </div>
+    </div>
+</div>
+{% endblock %} 

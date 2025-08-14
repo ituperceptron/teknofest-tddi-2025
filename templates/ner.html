@@ -1,0 +1,901 @@
+{% extends "base.html" %}
+
+{% block title %}GovAI - Varlık Tanıma{% endblock %}
+{% block page_title %}Varlık Tanıma (Named Entity Recognition){% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-nav">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Kontrol Paneli</span>
+        </a>
+    </div>
+    <div class="page-title">
+        <h1><i class="fas fa-search"></i> Varlık Tanıma</h1>
+        <p>Metinlerden kişi, yer ve organizasyon isimlerini tespit edin.</p>
+    </div>
+</div>
+
+<div class="ner-container">
+    <!-- Seçenekler -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Varlık Tanıma Yöntemi Seçin</h2>
+            <i class="fas fa-tasks"></i>
+        </div>
+        
+        <div class="summary-options">
+            <button type="button" class="option-btn active" id="pdfOption">
+                <i class="fas fa-file-pdf"></i>
+                <span>PDF ile Varlık Tanıma</span>
+            </button>
+            <button type="button" class="option-btn" id="textOption">
+                <i class="fas fa-file-text"></i>
+                <span>Metin ile Varlık Tanıma</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PDF Yükleme Bölümü -->
+    <div class="card" id="pdfSection">
+        <div class="card-header">
+            <h2 class="card-title">PDF Dosyası Yükle</h2>
+            <i class="fas fa-upload"></i>
+        </div>
+        
+        <div class="pdf-upload-area">
+            <div class="upload-zone" id="uploadZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>PDF Dosyasını Buraya Sürükleyin</h3>
+                <p>veya</p>
+                <label for="pdfInput" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i>
+                    Dosya Seç
+                </label>
+                <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- Yüklenen PDF Listesi -->
+        <div class="pdf-list" id="pdfList" style="display: none;">
+            <h3>Yüklenen PDF Dosyası</h3>
+            <div class="pdf-items" id="pdfItems">
+                <!-- PDF dosyası buraya eklenecek -->
+            </div>
+            <button type="button" class="btn btn-primary" id="processNer" style="display: none;">
+                <i class="fas fa-magic"></i>
+                Varlık Tanıma İşlemini Başlat
+            </button>
+        </div>
+    </div>
+
+    <!-- Metin Girişi Bölümü -->
+    <div class="card" id="textSection" style="display: none;">
+        <div class="card-header">
+                            <h2 class="card-title">Metin ile Varlık Tanıma</h2>
+            <i class="fas fa-file-text"></i>
+        </div>
+        
+        <form class="text-ner-form">
+            <div class="form-group">
+                <label for="original-text" class="form-label">İşlenecek Metin</label>
+                <textarea id="original-text" class="form-control" rows="10" placeholder="Varlık tanıma işlemi için metni buraya yazın veya yapıştırın..."></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-magic"></i>
+                Metin ile Varlık Tanıma İşlemini Başlat
+            </button>
+        </form>
+    </div>
+    
+    <!-- Varlık Tanıma Sonucu -->
+    <div class="card" id="nerResult" style="display: none;">
+        <div class="card-header">
+            <h2 class="card-title">Varlık Tanıma Sonuçları</h2>
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <div class="ner-result-content">
+            <div class="result-info">
+                <div class="info-item">
+                    <span class="info-label">Kaynak:</span>
+                    <span class="info-value" id="resultFileName"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Bulunan Varlık Sayısı:</span>
+                    <span class="info-value" id="resultEntityCount"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">İşlem Tarihi:</span>
+                    <span class="info-value" id="resultDate"></span>
+                </div>
+            </div>
+            
+            <!-- Filtreler -->
+            <div class="ner-filters">
+                <h3>Varlık Türü Filtreleri</h3>
+                <div class="filter-buttons">
+                    <button type="button" class="filter-btn active" data-filter="all">
+                        <i class="fas fa-list"></i>
+                        Tümü
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="PERSON">
+                        <i class="fas fa-user"></i>
+                        Kişiler
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="ORGANIZATION">
+                        <i class="fas fa-building"></i>
+                        Organizasyonlar
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="LOCATION">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Lokasyonlar
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="MONEY">
+                        <i class="fas fa-money-bill"></i>
+                        Para Birimleri
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="DATE_TIME">
+                        <i class="fas fa-calendar-alt"></i>
+                        Tarih & Zaman
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="LEGAL_REF">
+                        <i class="fas fa-gavel"></i>
+                        Yasal Referans
+                    </button>
+                    <button type="button" class="filter-btn" data-filter="PHONE_EMAIL">
+                        <i class="fas fa-address-book"></i>
+                        İletişim
+                    </button>
+                </div>
+            </div>
+            
+            <!-- NER Sonuçları -->
+            <div class="ner-entities">
+                <div class="entities-header">
+                    <h3>Bulunan Varlıklar</h3>
+                    <div class="entities-actions">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="exportEntities()">
+                            <i class="fas fa-download"></i>
+                            Dışa Aktar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="copyEntities()">
+                            <i class="fas fa-copy"></i>
+                            Kopyala
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="saveNerResult()">
+                            <i class="fas fa-save"></i>
+                            Kaydet
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="entities-container" id="entitiesContainer">
+                    <!-- Varlıklar buraya gelecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedPdf = null;
+let allEntities = [];
+let currentFilter = 'all';
+
+// Option switching
+document.getElementById('pdfOption').addEventListener('click', function() {
+    document.getElementById('pdfSection').style.display = 'block';
+    document.getElementById('textSection').style.display = 'none';
+    document.getElementById('pdfOption').classList.add('active');
+    document.getElementById('textOption').classList.remove('active');
+});
+
+document.getElementById('textOption').addEventListener('click', function() {
+    document.getElementById('pdfSection').style.display = 'none';
+    document.getElementById('textSection').style.display = 'block';
+    document.getElementById('textOption').classList.add('active');
+    document.getElementById('pdfOption').classList.remove('active');
+});
+
+// PDF Upload functionality
+const pdfInput = document.getElementById('pdfInput');
+const uploadZone = document.getElementById('uploadZone');
+const pdfList = document.getElementById('pdfList');
+const pdfItems = document.getElementById('pdfItems');
+const processNerBtn = document.getElementById('processNer');
+
+// Drag and drop for PDF
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type === 'application/pdf') {
+        handlePdfFile(files[0]);
+    }
+});
+
+pdfInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handlePdfFile(e.target.files[0]);
+    }
+});
+
+function handlePdfFile(file) {
+    if (selectedPdf) {
+        // Remove previous file
+        selectedPdf = null;
+        pdfItems.innerHTML = '';
+    }
+    
+    selectedPdf = file;
+    
+    const formData = new FormData();
+    formData.append('pdf_file', file);
+    
+    fetch('/upload_ner_pdf', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            selectedPdf.temp_id = data.temp_id;
+            displayPdfFile(file);
+            pdfList.style.display = 'block';
+            processNerBtn.style.display = 'block';
+        } else {
+            alert('PDF yükleme hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('PDF yükleme sırasında hata oluştu');
+    });
+}
+
+function displayPdfFile(file) {
+    pdfItems.innerHTML = `
+        <div class="pdf-item">
+            <div class="pdf-info">
+                <i class="fas fa-file-pdf"></i>
+                <span class="pdf-name">${file.name}</span>
+            </div>
+            <div class="pdf-actions">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="removePdf()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function removePdf() {
+    selectedPdf = null;
+    pdfItems.innerHTML = '';
+    pdfList.style.display = 'none';
+    processNerBtn.style.display = 'none';
+}
+
+// NER Processing from PDF
+processNerBtn.addEventListener('click', () => {
+    if (selectedPdf && selectedPdf.temp_id) {
+        processNerPdf(selectedPdf.temp_id);
+    }
+});
+
+function processNerPdf(tempId) {
+    const button = document.getElementById('processNer');
+    setButtonLoading(button, true);
+
+    fetch('/process_ner_pdf', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            pdf_id: tempId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            allEntities = data.entities;
+            showNerResult(data, selectedPdf.name, 'pdf');
+        } else {
+            alert('NER işlemi hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('NER işlemi sırasında hata oluştu');
+    })
+    .finally(() => {
+        setButtonLoading(button, false);
+    });
+}
+
+// NER Processing from Text
+document.querySelector('.text-ner-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const text = document.getElementById('original-text').value;
+    if (!text.trim()) {
+        alert('Lütfen işlemek istediğiniz metni girin.');
+        return;
+    }
+    
+    const button = this.querySelector('button[type="submit"]');
+    setButtonLoading(button, true);
+
+    fetch('/process_ner_text', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: text })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            allEntities = data.entities;
+            showNerResult(data, "Metin Girişi", 'text');
+        } else {
+            alert('NER işlemi hatası: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('NER işlemi sırasında hata oluştu');
+    })
+    .finally(() => {
+        setButtonLoading(button, false);
+    });
+});
+
+
+function showNerResult(data, sourceName, sourceType = 'unknown') {
+    document.getElementById('resultFileName').textContent = sourceName;
+    document.getElementById('resultEntityCount').textContent = allEntities.length;
+    document.getElementById('resultDate').textContent = new Date().toLocaleString('tr-TR');
+    
+    // Store NER info for saving
+    currentNerText = data.text || '';
+    currentNerEntities = allEntities;
+    currentNerSourceType = sourceType;
+    currentNerSourceFilename = sourceName;
+    
+    displayEntities(allEntities);
+    document.getElementById('nerResult').style.display = 'block';
+    
+    // Scroll to result
+    document.getElementById('nerResult').scrollIntoView({ behavior: 'smooth' });
+}
+
+function displayEntities(entities) {
+    const container = document.getElementById('entitiesContainer');
+    
+    if (entities.length === 0) {
+        container.innerHTML = '<div class="no-entities">Bu filtre için varlık bulunamadı.</div>';
+        return;
+    }
+    
+    // Group entities by type
+    const groupedEntities = {};
+    entities.forEach(entity => {
+        if (!groupedEntities[entity.type]) {
+            groupedEntities[entity.type] = [];
+        }
+        groupedEntities[entity.type].push(entity);
+    });
+    
+    let html = '';
+    Object.keys(groupedEntities).forEach(type => {
+        const typeEntities = groupedEntities[type];
+        const typeInfo = getEntityTypeInfo(type);
+        
+        html += `
+            <div class="entity-group">
+                <div class="entity-group-header">
+                    <i class="${typeInfo.icon}"></i>
+                    <h4>${typeInfo.name}</h4>
+                    <span class="entity-count">${typeEntities.length}</span>
+                </div>
+                <div class="entity-list">
+        `;
+        
+        typeEntities.forEach(entity => {
+            html += `
+                <div class="entity-item">
+                    <span class="entity-text">${entity.text}</span>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function getEntityTypeInfo(type) {
+    const typeMap = {
+        'PERSON': { name: 'Kişiler', icon: 'fas fa-user' },
+        'ORGANIZATION': { name: 'Organizasyonlar', icon: 'fas fa-building' },
+        'LOCATION': { name: 'Lokasyonlar', icon: 'fas fa-map-marker-alt' },
+        'MONEY': { name: 'Para Birimleri', icon: 'fas fa-money-bill' },
+        'DATE_TIME': { name: 'Tarih & Zaman', icon: 'fas fa-calendar-alt' },
+        'LEGAL_REF': { name: 'Yasal Referans', icon: 'fas fa-gavel' },
+        'PHONE_EMAIL': { name: 'Telefon & E-posta', icon: 'fas fa-address-book' }
+    };
+    
+    return typeMap[type] || { name: type, icon: 'fas fa-tag' };
+}
+
+// Filter functionality
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('filter-btn')) {
+        // Prevent default button behavior
+        e.preventDefault();
+        
+        // Remove active class from all buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Add active class to clicked button
+        e.target.classList.add('active');
+        
+        // Get filter value
+        currentFilter = e.target.dataset.filter;
+        
+        // Filter entities
+        let filteredEntities = allEntities;
+        if (currentFilter !== 'all') {
+            filteredEntities = allEntities.filter(entity => entity.type === currentFilter);
+        }
+        
+        displayEntities(filteredEntities);
+    }
+});
+
+function exportEntities() {
+    const data = {
+        fileName: document.getElementById('resultFileName').textContent,
+        date: document.getElementById('resultDate').textContent,
+        entities: allEntities
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ner_results.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+function copyEntities() {
+    const entitiesText = allEntities.map(entity => 
+        `${entity.text} (${entity.type})`
+    ).join('\n');
+    
+    navigator.clipboard.writeText(entitiesText).then(() => {
+        alert('Varlıklar panoya kopyalandı!');
+    });
+}
+
+// Global variables to store NER info
+let currentNerText = '';
+let currentNerEntities = [];
+let currentNerSourceType = '';
+let currentNerSourceFilename = '';
+
+function saveNerResult() {
+    const fileName = document.getElementById('resultFileName').textContent;
+    
+    if (!currentNerText || currentNerText.trim() === '') {
+        alert('Kaydedilecek NER sonucu bulunmuyor!');
+        return;
+    }
+    
+    // Get the save button
+    const saveButton = document.querySelector('.btn[onclick="saveNerResult()"]');
+    const originalText = saveButton.innerHTML;
+    const originalClass = saveButton.className;
+    
+    // Change button to loading state
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
+    saveButton.disabled = true;
+    saveButton.className = saveButton.className.replace('btn-primary', 'btn-warning');
+    
+    // Send NER result to backend to save as file
+    console.log('NER kaydetme isteği gönderiliyor...');
+    fetch('/save_ner_result', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ner_text: currentNerText,
+            entities: currentNerEntities,
+            source_type: currentNerSourceType || 'unknown',
+            source_filename: fileName || 'Bilinmeyen'
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Success state - green button
+            saveButton.innerHTML = '<i class="fas fa-check"></i> Kaydedildi';
+            saveButton.className = saveButton.className.replace('btn-warning', 'btn-success');
+            
+            console.log('NER sonucu başarıyla kaydedildi!');
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                saveButton.innerHTML = originalText;
+                saveButton.className = originalClass;
+                saveButton.disabled = false;
+            }, 3000);
+        } else {
+            console.error('Kaydetme başarısız:', data.error);
+            // Error state - red button
+            saveButton.innerHTML = '<i class="fas fa-times"></i> Hata!';
+            saveButton.className = saveButton.className.replace('btn-warning', 'btn-danger');
+            
+            alert('Kaydetme hatası: ' + (data.error || 'Bilinmeyen hata'));
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                saveButton.innerHTML = originalText;
+                saveButton.className = originalClass;
+                saveButton.disabled = false;
+            }, 3000);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        
+        // Error state - red button
+        saveButton.innerHTML = '<i class="fas fa-times"></i> Hata!';
+        saveButton.className = saveButton.className.replace('btn-warning', 'btn-danger');
+        
+        alert('Bağlantı hatası: ' + error.message);
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+            saveButton.innerHTML = originalText;
+            saveButton.className = originalClass;
+            saveButton.disabled = false;
+        }, 3000);
+    });
+}
+</script>
+
+<style>
+.ner-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.summary-options {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.option-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.option-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.option-btn.active i {
+    color: white;
+}
+
+.option-btn i {
+    font-size: 2rem;
+}
+
+.option-btn span {
+    font-weight: 500;
+    text-align: center;
+}
+
+.upload-zone {
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.upload-zone.dragover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.upload-zone i {
+    font-size: 3rem;
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.upload-zone h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.upload-zone p {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.upload-zone label {
+    background: #f8f9fa;
+    color: #333;
+}
+
+.upload-zone label i {
+    color: #555;
+}
+
+.pdf-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 10px;
+}
+
+.pdf-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pdf-info i {
+    color: #dc3545;
+    font-size: 1.2rem;
+}
+
+.pdf-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.pdf-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.ner-result-content {
+    padding: 20px 0;
+}
+
+.result-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.info-value {
+    color: #666;
+}
+
+.ner-filters {
+    margin-bottom: 30px;
+}
+
+.ner-filters h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.filter-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.filter-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.ner-entities {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.entities-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.entities-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.entities-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.entity-group {
+    margin-bottom: 25px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.entity-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    background: #667eea;
+    color: white;
+}
+
+.entity-group-header i {
+    font-size: 1.2rem;
+}
+
+.entity-group-header h4 {
+    margin: 0;
+    flex: 1;
+}
+
+.entity-count {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.entity-list {
+    padding: 0;
+}
+
+.entity-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.entity-item:hover {
+    background-color: #f8f9fa;
+}
+
+.entity-item:last-child {
+    border-bottom: none;
+}
+
+.entity-text {
+    font-weight: 500;
+    color: #333;
+}
+
+
+
+.no-entities {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .filter-buttons {
+        flex-direction: column;
+    }
+    
+    .entities-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .entities-actions {
+        justify-content: center;
+    }
+    
+    .result-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
