@@ -317,7 +317,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## İletişim
 
 Proje hakkında sorularınız için:
-- GitHub Issues: [Proje Issues Sayfası](https://github.com/username/tkfest/issues)
+- GitHub Issues: [[Proje Issues Sayfası](https://github.com/ituperceptron/teknofest-tddi-2025/issues)]
 
 ## Changelog
 
@@ -329,4 +329,5 @@ Proje hakkında sorularınız için:
 - Responsive tasarım
 
 - SQLite veritabanı desteği 
+
 
