@@ -33,6 +33,7 @@ GovAI, **Teknofest yarışması** için geliştirilmiş kapsamlı bir **offline 
 - **Sınıflandırma**: joeddav/xlm-roberta-large-xnli
 - **OCR**: Qwen2.5-VL-3B-Instruct (yerel model)
 - **NER**: [ituperceptron/turkish-ner-itu-perceptron](https://huggingface.co/ituperceptron/turkish-ner-itu-perceptron)
+- **NER (No CRF Version)** [ituperceptron/turkish-ner-itu-perceptron-no-crf](https://huggingface.co/ituperceptron/turkish-ner-itu-perceptron-no-crf)
 - **NER Dataset**: [ituperceptron/turkish-ner-dataset](https://huggingface.co/ituperceptron/turkish-ner-itu-perceptron)
 ### Frontend
 - **UI**: HTML5, CSS3, JavaScript (ES6+)
@@ -329,5 +330,6 @@ Proje hakkında sorularınız için:
 - Responsive tasarım
 
 - SQLite veritabanı desteği 
+
 
 
